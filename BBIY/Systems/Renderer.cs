@@ -27,9 +27,6 @@ namespace Systems
 
         public override void Update(GameTime gameTime)
         {
-            m_spriteBatch.Begin(SpriteSortMode.FrontToBack);
-
-            
             // Draw a background
             //Rectangle background = new Rectangle(OFFSET_X, OFFSET_Y, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
             //m_spriteBatch.Draw(m_texBackground, background, new Color(36, 36, 36));
@@ -38,8 +35,6 @@ namespace Systems
             {
                 renderEntity(entity);
             }
-
-            m_spriteBatch.End();
         }
 
         private void renderEntity(Entity entity)
@@ -61,7 +56,7 @@ namespace Systems
             }
             else
             {
-                m_spriteBatch.Draw(appearance.image, area, new Rectangle(0, 0, appearance.image.Width, appearance.image.Height), 
+                m_spriteBatch.Draw(appearance.image, area, null, 
                     appearance.fill, 0f, new Vector2(0,0), SpriteEffects.None, position.layerDepth);
             }
         }

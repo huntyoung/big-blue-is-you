@@ -44,22 +44,6 @@ namespace Systems
                 if (you.keys.ContainsKey(key))
                 {
                     you.lastMove = you.keys[key];
-
-                    //switch (input.lastMove)
-                    //{
-                    //    case Components.Direction.Up:
-                    //        move(entity, 0, -1);
-                    //        break;
-                    //    case Components.Direction.Down:
-                    //        move(entity, 0, 1);
-                    //        break;
-                    //    case Components.Direction.Left:
-                    //        move(entity, -1, 0);
-                    //        break;
-                    //    case Components.Direction.Right:
-                    //        move(entity, 1, 0);
-                    //        break;
-                    //}
                 }
                 pressAvailable = false;
             }
@@ -67,14 +51,6 @@ namespace Systems
             {
                 pressAvailable = true;
             }
-        }
-
-        private void move(Entities.Entity entity, int xIncrement, int yIncrement)
-        {
-            var position = entity.GetComponent<Components.Position>();
-
-            position.x += xIncrement;
-            position.y += yIncrement;
         }
     }
 }

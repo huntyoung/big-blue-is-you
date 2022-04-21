@@ -9,6 +9,8 @@ namespace BBIY
 {
     class GameModel
     {
+        SpriteBatch m_spriteBatch;
+
         public static string[] m_currentLevel { get; set; }
         public static int m_gridSize { get; set; }
 
@@ -25,8 +27,10 @@ namespace BBIY
         private Systems.Animate m_sysAnimate;
         private Systems.Collision m_sysCollision;
         private Systems.Movement m_sysMovement;
+        private Systems.ParticleSystem m_sysParticleSystem;
+        private Systems.SetRules m_sysRules;
 
-        private Texture2D m_backgroundSquare;
+        private Texture2D m_square;
         private Texture2D m_bigBlue;
         private Texture2D m_flag;
         private Texture2D m_floor;
@@ -59,26 +63,29 @@ namespace BBIY
         public void Initialize(ContentManager content, SpriteBatch spriteBatch)
         {
             loadContent(content);
+            m_spriteBatch = spriteBatch;
 
-            m_sysRenderer = new Systems.Renderer(spriteBatch, m_backgroundSquare, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
+            m_sysRenderer = new Systems.Renderer(m_spriteBatch, m_square, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
             m_sysKeyboardInput = new Systems.KeyboardInput();
             m_sysAnimate = new Systems.Animate();
             m_sysCollision = new Systems.Collision();
             m_sysMovement = new Systems.Movement();
+            m_sysParticleSystem = new Systems.ParticleSystem(AddEntity, RemoveEntity);
+            m_sysRules = new Systems.SetRules();
 
             initializeLevel();
-            //initializeBorder(texSquare);
-            //initializeObstacles(texSquare);
-            //initializeSnake(texSquare);
-            //AddEntity(createFood(texSquare));
         }
 
         public void Update(GameTime gameTime)
         {
+            m_sysRules.Update(gameTime);
             m_sysKeyboardInput.Update(gameTime);
             m_sysCollision.Update(gameTime);
             m_sysMovement.Update(gameTime);
+            m_sysParticleSystem.Update(gameTime);
             m_sysAnimate.Update(gameTime);
+
+            m_sysParticleSystem.objectIsWin(m_square);
 
             foreach (var entity in m_removeThese)
             {
@@ -95,7 +102,12 @@ namespace BBIY
 
         public void Draw(GameTime gameTime)
         {
+            m_spriteBatch.Begin(SpriteSortMode.FrontToBack);
+
             m_sysRenderer.Update(gameTime);
+            m_sysParticleSystem.renderParticles(m_spriteBatch);
+
+            m_spriteBatch.End();
         }
 
         private void AddEntity(Entity entity)
@@ -105,6 +117,8 @@ namespace BBIY
             m_sysAnimate.Add(entity);
             m_sysCollision.Add(entity);
             m_sysMovement.Add(entity);
+            m_sysParticleSystem.Add(entity);
+            m_sysRules.Add(entity);
         }
 
         private void RemoveEntity(Entity entity)
@@ -114,11 +128,13 @@ namespace BBIY
             m_sysAnimate.Remove(entity.Id);
             m_sysCollision.Remove(entity.Id);
             m_sysMovement.Remove(entity.Id);
+            m_sysParticleSystem.Remove(entity.Id);
+            m_sysRules.Remove(entity.Id);
         }
 
         private void loadContent(ContentManager content)
         {
-            m_backgroundSquare = content.Load<Texture2D>("Images/square");
+            m_square = content.Load<Texture2D>("Images/square");
 
             m_bigBlue = content.Load<Texture2D>("Images/Objects/BigBlue");
             m_flag = content.Load<Texture2D>("Images/Objects/flag");
@@ -200,118 +216,45 @@ namespace BBIY
                     m_addThese.Add(Hedge.create(m_hedge, x, y));
                     break;
                 case 'W':
-                    m_addThese.Add(Text.create(m_wordWall, x, y, new Color(41, 49, 65)));
+                    m_addThese.Add(Text.create(m_wordWall, "wall", x, y, new Color(41, 49, 65)));
                     break;
                 case 'R':
-                    m_addThese.Add(Text.create(m_wordRock, x, y, new Color(144, 103, 62)));
+                    m_addThese.Add(Text.create(m_wordRock, "rock", x, y, new Color(144, 103, 62)));
                     break;
                 case 'F':
-                    m_addThese.Add(Text.create(m_wordFlag, x, y, new Color(237, 226, 133)));
+                    m_addThese.Add(Text.create(m_wordFlag, "flag", x, y, new Color(237, 226, 133)));
                     break;
                 case 'B':
-                    m_addThese.Add(Text.create(m_wordBaba, x, y, new Color(217, 57, 106)));
+                    m_addThese.Add(Text.create(m_wordBaba, "baba", x, y, new Color(217, 57, 106)));
                     break;
                 case 'I':
-                    m_addThese.Add(Text.create(m_wordIs, x, y, Color.White));
+                    m_addThese.Add(Text.create(m_wordIs, "is", x, y, Color.White));
                     break;
                 case 'S':
-                    m_addThese.Add(Text.create(m_wordStop, x, y, new Color(75, 92, 28)));
+                    m_addThese.Add(Text.create(m_wordStop, "stop", x, y, new Color(75, 92, 28)));
                     break;
                 case 'P':
-                    m_addThese.Add(Text.create(m_wordPush, x, y, new Color(144, 103, 62)));
+                    m_addThese.Add(Text.create(m_wordPush, "push", x, y, new Color(144, 103, 62)));
                     break;
                 case 'V':
-                    m_addThese.Add(Text.create(m_wordLava, x, y, new Color(130, 38, 28)));
+                    m_addThese.Add(Text.create(m_wordLava, "lava", x, y, new Color(130, 38, 28)));
                     break;
                 case 'A':
-                    m_addThese.Add(Text.create(m_wordWater, x, y, new Color(95, 157, 209)));
+                    m_addThese.Add(Text.create(m_wordWater, "water", x, y, new Color(95, 157, 209)));
                     break;
                 case 'Y':
-                    m_addThese.Add(Text.create(m_wordYou, x, y, new Color(217, 57, 106)));
+                    m_addThese.Add(Text.create(m_wordYou, "you", x, y, new Color(217, 57, 106)));
                     break;
                 case 'X':
-                    m_addThese.Add(Text.create(m_wordWin, x, y, new Color(237, 226, 133)));
+                    m_addThese.Add(Text.create(m_wordWin, "win", x, y, new Color(237, 226, 133)));
                     break;
                 case 'N':
-                    m_addThese.Add(Text.create(m_wordSink, x, y, new Color(95, 157, 209)));
+                    m_addThese.Add(Text.create(m_wordSink, "sink", x, y, new Color(95, 157, 209)));
                     break;
                 case 'K':
-                    m_addThese.Add(Text.create(m_wordKill, x, y, new Color(130, 38, 28)));
+                    m_addThese.Add(Text.create(m_wordKill, "kill", x, y, new Color(130, 38, 28)));
                     break;
             }
         }
-
-            //private void initializeBorder(Texture2D square)
-            //{
-            //    for (int position = 0; position < GRID_SIZE; position++)
-            //    {
-            //        var left = Hedge.create(square, 0, position);
-            //        AddEntity(left);
-
-            //        var right = Hedge.create(square, GRID_SIZE - 1, position);
-            //        AddEntity(right);
-
-            //        var top = Hedge.create(square, position, 0);
-            //        AddEntity(top);
-
-            //        var bottom = Hedge.create(square, position, GRID_SIZE - 1);
-            //        AddEntity(bottom);
-            //    }
-            //}
-
-            //private void initializeObstacles(Texture2D square)
-            //{
-            //    MyRandom rnd = new MyRandom();
-            //    int remaining = OBSTACLE_COUNT;
-
-            //    while (remaining > 0)
-            //    {
-            //        int x = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        int y = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        var proposed = Floor.create(square, x, y);
-            //        if (!m_sysCollision.collidesWithAny(proposed))
-            //        {
-            //            AddEntity(proposed);
-            //            remaining--;
-            //        }
-            //    }
-            //}
-
-            //private void initializeSnake(Texture2D square)
-            //{
-            //    MyRandom rnd = new MyRandom();
-            //    bool done = false;
-
-            //    while (!done)
-            //    {
-            //        int x = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        int y = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        var proposed = BigBlue.create(square, x, y);
-            //        if (!m_sysCollision.collidesWithAny(proposed))
-            //        {
-            //            AddEntity(proposed);
-            //            done = true;
-            //        }
-            //    }
-            //}
-
-            //private Entity createFood(Texture2D square)
-            //{
-            //    MyRandom rnd = new MyRandom();
-            //    bool done = false;
-
-            //    while (!done)
-            //    {
-            //        int x = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        int y = (int)rnd.nextRange(1, GRID_SIZE - 1);
-            //        var proposed = Flag.create(square, x, y);
-            //        if (!m_sysCollision.collidesWithAny(proposed))
-            //        {
-            //            return proposed;
-            //        }
-            //    }
-
-            //    return null;
-        //}
     }
 }
