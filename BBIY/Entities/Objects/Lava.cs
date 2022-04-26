@@ -13,6 +13,7 @@ namespace Entities
             lava.Add(new Components.Appearance(lavaSheet, new Color(130, 38, 28)));
             lava.Add(new Components.Position(x, y));
             lava.Add(new Components.Animated(sourceRectangle, sourceRectangle.Height));
+            lava.Add(new Components.ChangeableObject("lava"));
 
             return lava;
         }

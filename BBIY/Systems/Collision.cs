@@ -8,11 +8,16 @@ namespace Systems
 {
     class Collision : System
     {
-        public Collision()
-            : base(
-                  typeof(Components.Position)
-                  )
+
+        private Action<Entities.Entity> m_addEntity;
+        private Action<Entities.Entity> m_removeEntity;
+        private Action<Point> m_playerDeathParticles;
+
+        public Collision(Action<Entities.Entity> addEntity, Action<Entities.Entity> removeEntity, Action<Point> playerDeathParticles) : base(typeof(Components.Position))
         {
+            m_addEntity = addEntity;
+            m_removeEntity = removeEntity;
+            m_playerDeathParticles = playerDeathParticles;
         }
 
         public override void Update(GameTime gameTime)
@@ -20,6 +25,7 @@ namespace Systems
             foreach (var entity in m_entities.Values)
             {
                 var position = entity.GetComponent<Components.Position>();
+                List<Entities.Entity> collidedEntities;
                 if (entity.ContainsComponent<Components.IsYou>())
                 {
                     var you = entity.GetComponent<Components.IsYou>();
@@ -27,9 +33,16 @@ namespace Systems
                     {
                         Point nextPosition = getNextPosition(position, you.lastMove);
                         //Debug.WriteLine("You: " + nextPosition.X.ToString() + ", " + nextPosition.Y.ToString());
-                        List<Entities.Entity> collidedEntities = getEntitiesAtPosition(nextPosition.X, nextPosition.Y);
-                        handleCollision(collidedEntities, you);
+                        collidedEntities = getEntitiesAtPosition(nextPosition.X, nextPosition.Y);
+                        handleYouCollisionAtNextPosition(collidedEntities, entity);
                     }
+                    collidedEntities = getEntitiesAtPosition(position.x, position.y);
+                    handleYouCollisionAtCurrentPosition(collidedEntities, entity);
+                }
+                else if (entity.ContainsComponent<Components.IsPush>() && !entity.ContainsComponent<Components.Text>())
+                {
+                    collidedEntities = getEntitiesAtPosition(position.x, position.y);
+                    pushableEntitySink(collidedEntities, entity);
                 }
             }
         }
@@ -67,33 +80,54 @@ namespace Systems
             return entities;
         }
 
-        private void handleCollision(List<Entities.Entity> entities, Components.IsYou you)
+        private void handleYouCollisionAtNextPosition(List<Entities.Entity> entities, Entities.Entity youEntity)
         {
+            var youComponent = youEntity.GetComponent<Components.IsYou>();
             foreach (var entity in entities)
             {
                 if (entity.ContainsComponent<Components.IsStop>())
                 {
-                    //Debug.WriteLine("Colided: " + entity.GetComponent<Components.Position>().x.ToString() + ", " + entity.GetComponent<Components.Position>().y.ToString());
-                    collisionIsStop(you);
+                    collisionIsStop(youComponent);
                 }
                 else if (entity.ContainsComponent<Components.IsPush>())
                 {
-                    collisionIsPush(entities, you);
+                    collisionIsPush(entities, youComponent);
                 }
             }
         }
 
-        private void collisionIsStop(Components.IsYou you)
+        private void handleYouCollisionAtCurrentPosition(List<Entities.Entity> entities, Entities.Entity youEntity)
         {
-            you.lastMove = Components.DirectionEnum.Stopped;
+            var youComponent = youEntity.GetComponent<Components.IsYou>();
+            foreach (var entity in entities)
+            {
+                if (entity.ContainsComponent<Components.IsSink>())
+                {
+                    collisionIsSink(entity, youEntity);
+                }
+                else if (entity.ContainsComponent<Components.IsKill>())
+                {
+                    collisionIsKill(youEntity);
+                }
+                else if (entity.ContainsComponent<Components.IsWin>())
+                {
+                    collisionIsWin();
+                    youComponent.lastMove = Components.DirectionEnum.Stopped;
+                }
+            }
         }
 
-        private void collisionIsPush(List<Entities.Entity> entities, Components.IsYou you)
+        private void collisionIsStop(Components.IsYou youComponent)
         {
-            bool didPush = collisionIsPushHelper(entities, you);
-            if (!didPush) collisionIsStop(you);
+            youComponent.lastMove = Components.DirectionEnum.Stopped;
         }
-        private bool collisionIsPushHelper(List<Entities.Entity> entities, Components.IsYou you)
+
+        private void collisionIsPush(List<Entities.Entity> entities, Components.IsYou youComponent)
+        {
+            bool didPush = collisionIsPushHelper(entities, youComponent);
+            if (!didPush) collisionIsStop(youComponent);
+        }
+        private bool collisionIsPushHelper(List<Entities.Entity> entities, Components.IsYou youComponent)
         {
             List<Entities.Entity> entitiesToPush = new List<Entities.Entity>();
 
@@ -110,28 +144,51 @@ namespace Systems
             if (!entityIsPush) return true;
 
             var position = entities[0].GetComponent<Components.Position>();
-            Point nextPosition = getNextPosition(position, you.lastMove);
+            Point nextPosition = getNextPosition(position, youComponent.lastMove);
             List<Entities.Entity> nextPositionEntities = getEntitiesAtPosition(nextPosition.X, nextPosition.Y);
 
-            bool continuePushing = collisionIsPushHelper(nextPositionEntities, you);
+            bool continuePushing = collisionIsPushHelper(nextPositionEntities, youComponent);
             if (continuePushing)
             {
                 foreach (var entity in entitiesToPush)
                 {
                     var isPush = entity.GetComponent<Components.IsPush>();
-                    isPush.lastPush = you.lastMove;
+                    isPush.lastPush = youComponent.lastMove;
                 }
             }
 
             return continuePushing;
         }
 
-        private void collisionIsKill()
+        private void collisionIsSink(Entities.Entity sinkEntity, Entities.Entity sunkEntity)
         {
+            m_removeEntity(sinkEntity);
+            m_removeEntity(sunkEntity);
         }
-        private void collisionIsSink()
+
+        private void collisionIsKill(Entities.Entity youEntity)
+        {
+            var position = youEntity.GetComponent<Components.Position>();
+            var youComponent = youEntity.GetComponent<Components.IsYou>();
+
+            m_removeEntity(youEntity);
+            m_playerDeathParticles(new Point(position.x, position.y));
+        }
+
+        private void collisionIsWin()
         {
 
+        }
+
+        private void pushableEntitySink(List<Entities.Entity> entities, Entities.Entity pushableEntity)
+        {
+            foreach (var entity in entities)
+            {
+                if (entity.ContainsComponent<Components.IsSink>())
+                {
+                    collisionIsSink(entity, pushableEntity);
+                }
+            }
         }
     }
 }

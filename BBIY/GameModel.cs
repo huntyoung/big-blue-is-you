@@ -9,18 +9,15 @@ namespace BBIY
 {
     class GameModel
     {
-        SpriteBatch m_spriteBatch;
+        private SpriteBatch m_spriteBatch;
 
         public static string[] m_currentLevel { get; set; }
         public static int m_gridSize { get; set; }
 
         private const int GRID_SIZE = 20;
-        private const int OBSTACLE_COUNT = 15;
         private readonly int WINDOW_WIDTH;
         private readonly int WINDOW_HEIGHT;
-
-        private List<Entity> m_removeThese = new List<Entity>();
-        private List<Entity> m_addThese = new List<Entity>();
+        private readonly int CELL_SIZE;
 
         private Systems.Renderer m_sysRenderer;
         private Systems.KeyboardInput m_sysKeyboardInput;
@@ -29,6 +26,7 @@ namespace BBIY
         private Systems.Movement m_sysMovement;
         private Systems.ParticleSystem m_sysParticleSystem;
         private Systems.SetRules m_sysRules;
+        private Systems.AssignComponents m_sysAssignComponents;
 
         private Texture2D m_square;
         private Texture2D m_bigBlue;
@@ -58,6 +56,7 @@ namespace BBIY
         {
             this.WINDOW_WIDTH = width;
             this.WINDOW_HEIGHT = height;
+            this.CELL_SIZE = height / GRID_SIZE;
         }
 
         public void Initialize(ContentManager content, SpriteBatch spriteBatch)
@@ -68,10 +67,17 @@ namespace BBIY
             m_sysRenderer = new Systems.Renderer(m_spriteBatch, m_square, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
             m_sysKeyboardInput = new Systems.KeyboardInput();
             m_sysAnimate = new Systems.Animate();
-            m_sysCollision = new Systems.Collision();
+            m_sysCollision = new Systems.Collision((entity) => {
+                m_sysAssignComponents.addToEntityList(entity);
+                AddEntity(entity);
+            }, (entity) => {
+                m_sysAssignComponents.removeFromEntityList(entity);
+                RemoveEntity(entity);
+            }, playerDeathParticles);
             m_sysMovement = new Systems.Movement();
-            m_sysParticleSystem = new Systems.ParticleSystem(AddEntity, RemoveEntity);
+            m_sysParticleSystem = new Systems.ParticleSystem(AddEntity, RemoveEntity, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
             m_sysRules = new Systems.SetRules();
+            m_sysAssignComponents = new Systems.AssignComponents(AddEntity, RemoveEntity, checkAndAdd);
 
             initializeLevel();
         }
@@ -79,25 +85,12 @@ namespace BBIY
         public void Update(GameTime gameTime)
         {
             m_sysRules.Update(gameTime);
+            m_sysAssignComponents.Update(gameTime);
             m_sysKeyboardInput.Update(gameTime);
             m_sysCollision.Update(gameTime);
             m_sysMovement.Update(gameTime);
             m_sysParticleSystem.Update(gameTime);
             m_sysAnimate.Update(gameTime);
-
-            m_sysParticleSystem.objectIsWin(m_square);
-
-            foreach (var entity in m_removeThese)
-            {
-                RemoveEntity(entity);
-            }
-            m_removeThese.Clear();
-
-            foreach (var entity in m_addThese)
-            {
-                AddEntity(entity);
-            }
-            m_addThese.Clear();
         }
 
         public void Draw(GameTime gameTime)
@@ -119,6 +112,7 @@ namespace BBIY
             m_sysMovement.Add(entity);
             m_sysParticleSystem.Add(entity);
             m_sysRules.Add(entity);
+            m_sysAssignComponents.Add(entity);
         }
 
         private void RemoveEntity(Entity entity)
@@ -130,6 +124,12 @@ namespace BBIY
             m_sysMovement.Remove(entity.Id);
             m_sysParticleSystem.Remove(entity.Id);
             m_sysRules.Remove(entity.Id);
+            m_sysAssignComponents.Remove(entity.Id);
+        }
+
+        private void playerDeathParticles(Point position)
+        {
+            m_sysParticleSystem.playerDeath(m_square, position);
         }
 
         private void loadContent(ContentManager content)
@@ -186,75 +186,82 @@ namespace BBIY
 
         private void checkAndAdd(char letter, int x, int y)
         {
+            Entity entity;
             switch (letter)
             {
                 case 'w':
-                    m_addThese.Add(Wall.create(m_wall, x, y));
+                    entity = Wall.create(m_wall, x, y);
                     break;
                 case 'r':
-                    m_addThese.Add(Rock.create(m_rock, x, y));
+                    entity = Rock.create(m_rock, x, y);
                     break;
                 case 'f':
-                    m_addThese.Add(Flag.create(m_flag, x, y));
+                    entity = Flag.create(m_flag, x, y);
                     break;
                 case 'b':
-                    m_addThese.Add(BigBlue.create(m_bigBlue, x, y));
+                    entity = BigBlue.create(m_bigBlue, x, y);
                     break;
                 case 'l':
-                    m_addThese.Add(Floor.create(m_floor, x, y));
+                    entity = Floor.create(m_floor, x, y);
                     break;
                 case 'g':
-                    m_addThese.Add(Grass.create(m_grass, x, y));
+                    entity = Grass.create(m_grass, x, y);
                     break;
                 case 'a':
-                    m_addThese.Add(Water.create(m_water, x, y));
+                    entity = Water.create(m_water, x, y);
                     break;
                 case 'v':
-                    m_addThese.Add(Lava.create(m_lava, x, y));
+                    entity = Lava.create(m_lava, x, y);
                     break;
                 case 'h':
-                    m_addThese.Add(Hedge.create(m_hedge, x, y));
+                    entity = Hedge.create(m_hedge, x, y);
                     break;
                 case 'W':
-                    m_addThese.Add(Text.create(m_wordWall, "wall", x, y, new Color(41, 49, 65)));
+                    entity = Text.create(m_wordWall, "wall", x, y, new Color(41, 49, 65));
                     break;
                 case 'R':
-                    m_addThese.Add(Text.create(m_wordRock, "rock", x, y, new Color(144, 103, 62)));
+                    entity = Text.create(m_wordRock, "rock", x, y, new Color(144, 103, 62));
                     break;
                 case 'F':
-                    m_addThese.Add(Text.create(m_wordFlag, "flag", x, y, new Color(237, 226, 133)));
+                    entity = Text.create(m_wordFlag, "flag", x, y, new Color(237, 226, 133));
                     break;
                 case 'B':
-                    m_addThese.Add(Text.create(m_wordBaba, "baba", x, y, new Color(217, 57, 106)));
+                    entity = Text.create(m_wordBaba, "baba", x, y, new Color(217, 57, 106));
                     break;
                 case 'I':
-                    m_addThese.Add(Text.create(m_wordIs, "is", x, y, Color.White));
+                    entity = Text.create(m_wordIs, "is", x, y, Color.White);
                     break;
                 case 'S':
-                    m_addThese.Add(Text.create(m_wordStop, "stop", x, y, new Color(75, 92, 28)));
+                    entity = Text.create(m_wordStop, "stop", x, y, new Color(75, 92, 28));
                     break;
                 case 'P':
-                    m_addThese.Add(Text.create(m_wordPush, "push", x, y, new Color(144, 103, 62)));
+                    entity = Text.create(m_wordPush, "push", x, y, new Color(144, 103, 62));
                     break;
                 case 'V':
-                    m_addThese.Add(Text.create(m_wordLava, "lava", x, y, new Color(130, 38, 28)));
+                    entity = Text.create(m_wordLava, "lava", x, y, new Color(130, 38, 28));
                     break;
                 case 'A':
-                    m_addThese.Add(Text.create(m_wordWater, "water", x, y, new Color(95, 157, 209)));
+                    entity = Text.create(m_wordWater, "water", x, y, new Color(95, 157, 209));
                     break;
                 case 'Y':
-                    m_addThese.Add(Text.create(m_wordYou, "you", x, y, new Color(217, 57, 106)));
+                    entity = Text.create(m_wordYou, "you", x, y, new Color(217, 57, 106));
                     break;
                 case 'X':
-                    m_addThese.Add(Text.create(m_wordWin, "win", x, y, new Color(237, 226, 133)));
+                    entity = Text.create(m_wordWin, "win", x, y, new Color(237, 226, 133));
                     break;
                 case 'N':
-                    m_addThese.Add(Text.create(m_wordSink, "sink", x, y, new Color(95, 157, 209)));
+                    entity = Text.create(m_wordSink, "sink", x, y, new Color(95, 157, 209));
                     break;
                 case 'K':
-                    m_addThese.Add(Text.create(m_wordKill, "kill", x, y, new Color(130, 38, 28)));
+                    entity = Text.create(m_wordKill, "kill", x, y, new Color(130, 38, 28));
                     break;
+                default:
+                    return;
             }
+
+            // add to entity list to assign additional components in AssignComponents
+            m_sysAssignComponents.addToEntityList(entity);
+            AddEntity(entity);
         }
     }
 }

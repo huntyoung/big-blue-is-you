@@ -13,6 +13,7 @@ namespace Entities
             wall.Add(new Components.Appearance(wallSheet, new Color(41, 49, 65)));
             wall.Add(new Components.Position(x, y));
             wall.Add(new Components.Animated(sourceRectangle, sourceRectangle.Height));
+            wall.Add(new Components.ChangeableObject("wall"));
 
             return wall;
         }

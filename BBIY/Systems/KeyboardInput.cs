@@ -21,29 +21,11 @@ namespace Systems
 
         public override void Update(GameTime gameTime)
         {
-            foreach (var entity in m_entities.Values)
-            {
-                moveControlledEntities(entity, gameTime);
-            }
-
-            if (Keyboard.GetState().IsKeyDown(BBIY.KeyboardControls.reset) && pressAvailable)
-            {
-                Debug.WriteLine("Reset Level");
-                pressAvailable = false;
-            }
-        }
-
-        private void moveControlledEntities(Entities.Entity entity, GameTime gameTime)
-        {
-            var you = entity.GetComponent<Components.IsYou>();
-
             if (Keyboard.GetState().GetPressedKeys().Length > 0 && pressAvailable)
             {
-                var key = Keyboard.GetState().GetPressedKeys()[0];
-
-                if (you.keys.ContainsKey(key))
+                foreach (var entity in m_entities.Values)
                 {
-                    you.lastMove = you.keys[key];
+                    moveControlledEntities(entity, gameTime);
                 }
                 pressAvailable = false;
             }
@@ -51,6 +33,17 @@ namespace Systems
             {
                 pressAvailable = true;
             }
+        }
+
+        private void moveControlledEntities(Entities.Entity entity, GameTime gameTime)
+        {
+            var you = entity.GetComponent<Components.IsYou>();
+            var key = Keyboard.GetState().GetPressedKeys()[0];
+
+            if (you.keys.ContainsKey(key))
+            {
+                you.lastMove = you.keys[key];
+            }            
         }
     }
 }

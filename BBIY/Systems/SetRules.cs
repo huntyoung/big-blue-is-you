@@ -1,22 +1,32 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace Systems
 {
     class SetRules : System
     {
-        private List<string> rulesList = new List<string>();
+        public static List<string> previousRulesList;
+        public static List<string> rulesList;
+
+        private string[] nouns = { "baba", "flag", "lava", "rock", "wall", "water" };
+        private string[] definitions = { "you", "win", "stop", "push", "sink", "kill" };
+        private string[] verbs = { "is" };
+
         public SetRules()
             : base(
                   typeof(Components.Text)
                   )
         {
+            previousRulesList = new List<string>();
+            rulesList = new List<string>();
         }
 
         public override void Update(GameTime gameTime)
         {
+            // reset rules list
+            rulesList.Clear();
             foreach (var entity in m_entities.Values)
             {
                 var text = entity.GetComponent<Components.Text>();
@@ -25,22 +35,28 @@ namespace Systems
                 checkForRule(text, position, Components.DirectionEnum.Right);
                 checkForRule(text, position, Components.DirectionEnum.Down);
             }
+            Console.WriteLine("HI");
         }
 
         private void checkForRule(Components.Text text, Components.Position position, Components.DirectionEnum direction)
         {
-            string firstWord = text.word;
-            if (firstWord == "is") return;
+            Components.Text firstText = text;
+            if (!nouns.Contains(firstText.word)) return;
 
             Point secondPosition = getNextPosition(new Point(position.x, position.y), direction);
-            string secondWord = getWordAtPosition(secondPosition.X, secondPosition.Y);
-            if (secondWord == "is")
+            Components.Text secondText = getTextAtPosition(secondPosition.X, secondPosition.Y);
+            if (secondText != null && verbs.Contains(secondText.word))
             {
                 Point thirdPosition = getNextPosition(secondPosition, direction);
-                string thirdWord = getWordAtPosition(thirdPosition.X, thirdPosition.Y);
-                if (thirdWord != "is" && thirdWord != "")
+                Components.Text thirdText = getTextAtPosition(thirdPosition.X, thirdPosition.Y);
+                if (thirdText != null && (nouns.Contains(thirdText.word) || definitions.Contains(thirdText.word)))
                 {
-                    rulesList.Add(firstWord + " " + secondWord + " " + thirdWord);
+                    string rule = firstText.word + " " + secondText.word + " " + thirdText.word;
+                    if (!rulesList.Contains(rule))
+                    {
+                        // rules are added if not already contained in rules list
+                        rulesList.Add(rule);
+                    }
                 }
             }
         }
@@ -62,19 +78,18 @@ namespace Systems
             }
         }
 
-        private string getWordAtPosition(int x, int y)
+        private Components.Text getTextAtPosition(int x, int y)
         {
             foreach (var entity in m_entities.Values)
             {
                 var position = entity.GetComponent<Components.Position>();
                 if (position.x == x && position.y == y)
                 {
-                    var text = entity.GetComponent<Components.Text>();
-                    return text.word;
+                    return entity.GetComponent<Components.Text>();
                 }
             }
 
-            return "";
+            return null;
         }
     }
 }

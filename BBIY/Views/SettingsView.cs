@@ -9,9 +9,18 @@ namespace BBIY
 
     public class SettingsView : GameStateView
     {
+        private KeyboardControlPersistance m_keyboardControlPersistance;
         private SpriteFont m_header;
         private SpriteFont m_subFont;
         private const string MESSAGE = "Change Keyboard Controls";
+
+        private KeyboardControls m_loadedControls;
+        private Keys m_currentUp;
+        private Keys m_currentDown;
+        private Keys m_currentLeft;
+        private Keys m_currentRight;
+        private Keys m_currentReset;
+        private bool m_getOriginalControls;
 
         private int WINDOW_WIDTH;
         private int WINDOW_HEIGHT;
@@ -28,6 +37,11 @@ namespace BBIY
             Reset
         }
 
+        public SettingsView(KeyboardControlPersistance keyboardControlPersistance)
+        {
+            m_keyboardControlPersistance = keyboardControlPersistance;
+        }
+
         public override void initializeSession()
         {
             this.WINDOW_WIDTH = m_graphics.PreferredBackBufferWidth;
@@ -35,7 +49,17 @@ namespace BBIY
             m_currentSelection = CurrentlySelectedEnum.Up;
 
             m_waitForKeyRelease = true;
+
+            m_loadedControls = KeyboardControlPersistance.m_loadedControls;
+            m_getOriginalControls = true;
+
+            m_currentUp = Keys.W;
+            m_currentDown = Keys.S;
+            m_currentLeft = Keys.A;
+            m_currentRight = Keys.D;
+            m_currentReset = Keys.R;
         }
+
 
         public override void loadContent(ContentManager contentManager)
         {
@@ -45,35 +69,59 @@ namespace BBIY
 
         public override GameStateEnum processInput(GameTime gameTime)
         {
+            if (m_loadedControls != null)
+            {
+                if (m_getOriginalControls)
+                {
+                    m_currentUp = m_loadedControls.moveUp;
+                    m_currentDown = m_loadedControls.moveDown;
+                    m_currentLeft = m_loadedControls.moveLeft;
+                    m_currentRight = m_loadedControls.moveRight;
+                    m_currentReset = m_loadedControls.reset;
+
+                    m_getOriginalControls = false;
+                }
+            } 
+            else
+            {
+                // keep trying for non-null value
+                m_loadedControls = KeyboardControlPersistance.m_loadedControls;
+            }
+
             if (!m_waitForKeyRelease)
             {
                 if (Keyboard.GetState().GetPressedKeys().Length > 0)
                 {
                     Keys pressedKey = Keyboard.GetState().GetPressedKeys()[0];
-                    if (pressedKey == Keys.Escape) return GameStateEnum.MainMenu;
+                    if (pressedKey == Keys.Escape)
+                    {
+                        m_keyboardControlPersistance.saveControls(m_currentUp, m_currentDown, m_currentLeft, m_currentRight, m_currentReset);
+                        while (m_keyboardControlPersistance.isSaving()) { }
+                        return GameStateEnum.MainMenu;
+                    }
 
-                    if (pressedKey == KeyboardControls.moveUp) KeyboardControls.moveUp = Keys.None;
-                    if (pressedKey == KeyboardControls.moveDown) KeyboardControls.moveDown = Keys.None;
-                    if (pressedKey == KeyboardControls.moveLeft) KeyboardControls.moveLeft = Keys.None;
-                    if (pressedKey == KeyboardControls.moveRight) KeyboardControls.moveRight = Keys.None;
-                    if (pressedKey == KeyboardControls.reset) KeyboardControls.reset = Keys.None;
+                    if (pressedKey == m_currentUp) m_currentUp = Keys.None;
+                    if (pressedKey == m_currentDown) m_currentDown = Keys.None;
+                    if (pressedKey == m_currentLeft) m_currentLeft = Keys.None;
+                    if (pressedKey == m_currentRight) m_currentRight = Keys.None;
+                    if (pressedKey == m_currentReset) m_currentReset = Keys.None;
 
                     switch (m_currentSelection)
                     {
                         case CurrentlySelectedEnum.Up:
-                            KeyboardControls.moveUp = pressedKey;
+                            m_currentUp = pressedKey;
                             break;
                         case CurrentlySelectedEnum.Down:
-                            KeyboardControls.moveDown = pressedKey;
+                            m_currentDown = pressedKey;
                             break;
                         case CurrentlySelectedEnum.Left:
-                            KeyboardControls.moveLeft = pressedKey;
+                            m_currentLeft = pressedKey;
                             break;
                         case CurrentlySelectedEnum.Right:
-                            KeyboardControls.moveRight = pressedKey;
+                            m_currentRight = pressedKey;
                             break;
                         case CurrentlySelectedEnum.Reset:
-                            KeyboardControls.reset = pressedKey;
+                            m_currentReset = pressedKey;
                             break;
                     }
 
@@ -88,7 +136,6 @@ namespace BBIY
                 m_waitForKeyRelease = false;
             }
 
-
             return GameStateEnum.Settings;
         }
 
@@ -102,24 +149,24 @@ namespace BBIY
 
             Vector2 headerSize = m_header.MeasureString(MESSAGE);
             m_spriteBatch.DrawString(m_header, MESSAGE,
-                new Vector2(WINDOW_WIDTH / 2 - headerSize.X / 2, WINDOW_HEIGHT / 4 - headerSize.Y), Color.Black);
+                new Vector2(WINDOW_WIDTH / 2 - headerSize.X / 2, WINDOW_HEIGHT / 4 - headerSize.Y), Color.White);
 
-            m_spriteBatch.DrawString(m_subFont, "Up: " + KeyboardControls.moveUp.ToString(),
+            m_spriteBatch.DrawString(m_subFont, "Up: " + m_currentUp.ToString(),
                 new Vector2(WINDOW_WIDTH / 2 - headerSize.X / 3, WINDOW_HEIGHT / 3), 
-                m_currentSelection == CurrentlySelectedEnum.Up ? Color.Red : Color.Black);
-            m_spriteBatch.DrawString(m_subFont, "Down: " + KeyboardControls.moveDown.ToString(),
+                m_currentSelection == CurrentlySelectedEnum.Up ? Color.Red : Color.White);
+            m_spriteBatch.DrawString(m_subFont, "Down: " + m_currentDown.ToString(),
                 new Vector2(WINDOW_WIDTH / 2 - headerSize.X / 3, (int)(WINDOW_HEIGHT / 2.3)),
-                m_currentSelection == CurrentlySelectedEnum.Down ? Color.Red : Color.Black);
-            m_spriteBatch.DrawString(m_subFont, "Left: " + KeyboardControls.moveLeft.ToString(),
+                m_currentSelection == CurrentlySelectedEnum.Down ? Color.Red : Color.White);
+            m_spriteBatch.DrawString(m_subFont, "Left: " + m_currentLeft.ToString(),
                 new Vector2(WINDOW_WIDTH / 2 + headerSize.X / 6, WINDOW_HEIGHT / 3),
-                m_currentSelection == CurrentlySelectedEnum.Left ? Color.Red : Color.Black);
-            m_spriteBatch.DrawString(m_subFont, "Right: " + KeyboardControls.moveRight.ToString(),
+                m_currentSelection == CurrentlySelectedEnum.Left ? Color.Red : Color.White);
+            m_spriteBatch.DrawString(m_subFont, "Right: " + m_currentRight.ToString(),
                 new Vector2(WINDOW_WIDTH / 2 + headerSize.X / 6, (int)(WINDOW_HEIGHT / 2.3)),
-                m_currentSelection == CurrentlySelectedEnum.Right ? Color.Red : Color.Black);
-            m_spriteBatch.DrawString(m_subFont, "Reset: " + KeyboardControls.reset.ToString(),
-                new Vector2(WINDOW_WIDTH / 2 - m_subFont.MeasureString("Reset: " + KeyboardControls.reset.ToString()).X / 2, 
+                m_currentSelection == CurrentlySelectedEnum.Right ? Color.Red : Color.White);
+            m_spriteBatch.DrawString(m_subFont, "Reset: " + m_currentReset.ToString(),
+                new Vector2(WINDOW_WIDTH / 2 - m_subFont.MeasureString("Reset: " + m_currentReset.ToString()).X / 2, 
                 (int)(WINDOW_HEIGHT / 1.8)),
-                m_currentSelection == CurrentlySelectedEnum.Reset ? Color.Red : Color.Black);
+                m_currentSelection == CurrentlySelectedEnum.Reset ? Color.Red : Color.White);
 
             m_spriteBatch.End();
         }

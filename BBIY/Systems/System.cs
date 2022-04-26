@@ -51,7 +51,7 @@ namespace Systems
         /// <returns>Returns true if the given entity was added to this system. Otherwise returns false.</returns>
         public bool Add(Entity entity)
         {
-            if (IsInterested(entity))
+            if (IsInterested(entity) && !m_entities.ContainsKey(entity.Id))
             {
                 m_entities.Add(entity.Id, entity);
                 return true;

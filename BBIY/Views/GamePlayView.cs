@@ -12,6 +12,9 @@ namespace BBIY
         ContentManager m_content;
         private GameModel m_gameModel;
 
+        private Keys m_resetKey;
+        private bool m_resetAvailable;
+
         public override void initializeSession()
         {
             m_gameModel = new GameModel(m_graphics.PreferredBackBufferWidth, m_graphics.PreferredBackBufferHeight);
@@ -29,6 +32,16 @@ namespace BBIY
             {
                 return GameStateEnum.MainMenu;
             }
+
+            if (KeyboardControlPersistance.m_loadedControls == null) m_resetKey = Keys.R;
+            else m_resetKey = KeyboardControlPersistance.m_loadedControls.reset;
+
+            if (Keyboard.GetState().IsKeyDown(m_resetKey) && m_resetAvailable)
+            {
+                initializeSession();
+                m_resetAvailable = false;
+            }
+            if (Keyboard.GetState().IsKeyUp(m_resetKey)) m_resetAvailable = true;
 
             return GameStateEnum.GamePlay;
         }

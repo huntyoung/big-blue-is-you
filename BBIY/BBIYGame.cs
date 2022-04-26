@@ -12,6 +12,8 @@ namespace BBIY
         private GameStateEnum m_nextStateEnum = GameStateEnum.MainMenu;
         private Dictionary<GameStateEnum, IGameState> m_states;
 
+        private KeyboardControlPersistance m_keyboardControlPersistance;
+
         public BBIYGame()
         {
             m_graphics = new GraphicsDeviceManager(this);
@@ -21,6 +23,8 @@ namespace BBIY
 
         protected override void Initialize()
         {
+            m_keyboardControlPersistance = new KeyboardControlPersistance();
+
             // Set window size preferences
             m_graphics.IsFullScreen = false;
             m_graphics.PreferredBackBufferWidth = 800;
@@ -30,14 +34,15 @@ namespace BBIY
 
             // Create all the game states here
             m_states = new Dictionary<GameStateEnum, IGameState>();
-            m_states.Add(GameStateEnum.MainMenu, new MainMenuView());
+            m_states.Add(GameStateEnum.MainMenu, new MainMenuView(m_keyboardControlPersistance));
             m_states.Add(GameStateEnum.LevelSelect, new LevelSelectView());
             m_states.Add(GameStateEnum.GamePlay, new GamePlayView());
-            m_states.Add(GameStateEnum.Settings, new SettingsView());
+            m_states.Add(GameStateEnum.Settings, new SettingsView(m_keyboardControlPersistance));
             m_states.Add(GameStateEnum.Credits, new CreditsView());
 
             // We are starting with the main menu
             m_currentState = m_states[GameStateEnum.MainMenu];
+            m_currentState.initializeSession();
 
             base.Initialize();
         }

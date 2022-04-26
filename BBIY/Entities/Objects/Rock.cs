@@ -13,6 +13,7 @@ namespace Entities
             rock.Add(new Components.Appearance(rockSheet, new Color(144, 103, 62)));
             rock.Add(new Components.Position(x, y));
             rock.Add(new Components.Animated(sourceRectangle, sourceRectangle.Height));
+            rock.Add(new Components.ChangeableObject("rock"));
 
             return rock;
         }

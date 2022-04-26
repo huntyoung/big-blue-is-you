@@ -14,14 +14,8 @@ namespace Entities
 
             bigBlue.Add(new Components.Appearance(bigBlueSheet, Color.White));
             bigBlue.Add(new Components.Position(x, y));
-            bigBlue.Add(new Components.IsYou(
-                new Dictionary<Keys, Components.DirectionEnum>
-                {
-                        { BBIY.KeyboardControls.moveUp, Components.DirectionEnum.Up },
-                        { BBIY.KeyboardControls.moveDown, Components.DirectionEnum.Down },
-                        { BBIY.KeyboardControls.moveLeft, Components.DirectionEnum.Left },
-                        { BBIY.KeyboardControls.moveRight, Components.DirectionEnum.Right }
-                }));
+            bigBlue.Add(new Components.ChangeableObject("baba"));
+            //bigBlue.Add(new Components.IsYou());
 
             return bigBlue;
         }

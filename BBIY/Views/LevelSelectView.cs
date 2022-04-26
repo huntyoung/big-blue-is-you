@@ -13,23 +13,15 @@ namespace BBIY
         private SpriteFont m_fontMenu;
         private SpriteFont m_fontMenuSelect;
 
-        List<string[]> levels;
+        private List<string[]> m_levels;
+        private int m_numberOfLevels;
+        private int m_levelSelected;
 
-        private enum LevelState
-        {
-            Level1,
-            Level2,
-            Level3,
-            Level4,
-            Level5
-        }
-
-        private LevelState m_currentSelection;
         private bool m_waitForKeyRelease;
 
         public override void initializeSession()
         {
-            m_currentSelection = LevelState.Level1;
+            m_levelSelected = 1;
             m_waitForKeyRelease = true;
         }
 
@@ -42,8 +34,9 @@ namespace BBIY
             string projectDirectory = Directory.GetParent(enviroment).Parent.Parent.FullName; // returns path to BBIY/BBIY folder
             string levelsPath = Path.Combine(projectDirectory, @"levels-all.bbiy");
 
-            string[] allLevels = System.IO.File.ReadAllLines(levelsPath);
-            this.levels = separateLevels(allLevels);
+            string[] allLevels = File.ReadAllLines(levelsPath);
+            m_levels = separateLevels(allLevels);
+            m_numberOfLevels = m_levels.Count;
         }
         public override GameStateEnum processInput(GameTime gameTime)
         {
@@ -52,18 +45,18 @@ namespace BBIY
             {
                 if (Keyboard.GetState().IsKeyDown(Keys.Escape)) return GameStateEnum.MainMenu;
 
-                // Arrow keys to navigate the menu
+                // Arrow keys/WASD to navigate the menu
                 if (Keyboard.GetState().IsKeyDown(Keys.Down) || Keyboard.GetState().IsKeyDown(Keys.S))
                 {
-                    if (m_currentSelection == LevelState.Level5) m_currentSelection = LevelState.Level1;
-                    else m_currentSelection++;
+                    if (m_levelSelected == m_numberOfLevels) m_levelSelected = 1;
+                    else m_levelSelected++;
 
                     m_waitForKeyRelease = true;
                 }
                 if (Keyboard.GetState().IsKeyDown(Keys.Up) || Keyboard.GetState().IsKeyDown(Keys.W))
                 {
-                    if (m_currentSelection == LevelState.Level1) m_currentSelection = LevelState.Level5;
-                    else m_currentSelection--;
+                    if (m_levelSelected == 1) m_levelSelected = m_numberOfLevels;
+                    else m_levelSelected--;
 
                     m_waitForKeyRelease = true;
                 }
@@ -71,24 +64,8 @@ namespace BBIY
                 // If enter is pressed, return the appropriate new state
                 if (Keyboard.GetState().IsKeyDown(Keys.Enter))
                 {
-                    switch (m_currentSelection)
-                    {
-                        case LevelState.Level1:
-                            GameModel.m_currentLevel = levels[0];
-                            break;
-                        case LevelState.Level2:
-                            GameModel.m_currentLevel = levels[1];
-                            break;
-                        case LevelState.Level3:
-                            GameModel.m_currentLevel = levels[2];
-                            break;
-                        case LevelState.Level4:
-                            GameModel.m_currentLevel = levels[3];
-                            break;
-                        case LevelState.Level5:
-                            GameModel.m_currentLevel = levels[4];
-                            break;
-                    }
+                    GameModel.m_currentLevel = m_levels[m_levelSelected - 1];
+
                     return GameStateEnum.GamePlay;
                 }
             }
@@ -107,15 +84,16 @@ namespace BBIY
             m_spriteBatch.Begin();
 
             // I split the first one's parameters on separate lines to help you see them better
-            float bottom = drawLevelMenuItem(
-                m_currentSelection == LevelState.Level1 ? m_fontMenuSelect : m_fontMenu,
-                "Level 1",
-                200,
-                m_currentSelection == LevelState.Level1 ? Color.Yellow : Color.Blue);
-            bottom = drawLevelMenuItem(m_currentSelection == LevelState.Level2 ? m_fontMenuSelect : m_fontMenu, "Level 2", bottom, m_currentSelection == LevelState.Level2 ? Color.Yellow : Color.Blue);
-            bottom = drawLevelMenuItem(m_currentSelection == LevelState.Level3 ? m_fontMenuSelect : m_fontMenu, "Level 3", bottom, m_currentSelection == LevelState.Level3 ? Color.Yellow : Color.Blue);
-            bottom = drawLevelMenuItem(m_currentSelection == LevelState.Level4 ? m_fontMenuSelect : m_fontMenu, "Level 4", bottom, m_currentSelection == LevelState.Level4 ? Color.Yellow : Color.Blue);
-            drawLevelMenuItem(m_currentSelection == LevelState.Level5 ? m_fontMenuSelect : m_fontMenu, "Level 5", bottom, m_currentSelection == LevelState.Level5 ? Color.Yellow : Color.Blue);
+            float bottom = 100;
+            for (int i = 1; i <= m_numberOfLevels; i++)
+            {
+                bottom = drawLevelMenuItem(
+                    m_levelSelected == i ? m_fontMenuSelect : m_fontMenu,
+                    m_levels[i - 1][0],
+                    bottom,
+                    m_levelSelected == i ? Color.Yellow : Color.Blue
+                );
+            }
 
             m_spriteBatch.End();
         }

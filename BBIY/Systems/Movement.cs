@@ -1,5 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
+using System.Diagnostics;
 
 namespace Systems
 {
@@ -34,6 +34,10 @@ namespace Systems
             {
                 moveDirection = entity.GetComponent<Components.IsPush>().lastPush;
                 entity.GetComponent<Components.Position>().layerDepth = 1f; // all movable entities (you and push) get put on top layer
+            }
+            else if (entity.ContainsComponent<Components.IsKill>() || entity.ContainsComponent<Components.IsSink>())
+            {
+                entity.GetComponent<Components.Position>().layerDepth = 0.3f;
             }
             else if (entity.ContainsComponent<Components.Background>())
             {

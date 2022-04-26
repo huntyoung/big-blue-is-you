@@ -13,6 +13,7 @@ namespace Entities
             water.Add(new Components.Appearance(waterSheet, new Color(95, 157, 209)));
             water.Add(new Components.Position(x, y));
             water.Add(new Components.Animated(sourceRectangle, sourceRectangle.Height));
+            water.Add(new Components.ChangeableObject("water"));
 
             return water;
         }

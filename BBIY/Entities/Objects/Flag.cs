@@ -13,6 +13,7 @@ namespace Entities
             flag.Add(new Components.Appearance(flagSheet, new Color(237, 226, 133)));
             flag.Add(new Components.Position(x, y));
             flag.Add(new Components.Animated(sourceRectangle, sourceRectangle.Height));
+            flag.Add(new Components.ChangeableObject("flag"));
 
             return flag;
         }

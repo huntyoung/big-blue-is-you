@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Diagnostics;
 
 namespace BBIY
 {
@@ -9,6 +10,8 @@ namespace BBIY
     {
         private SpriteFont m_fontMenu;
         private SpriteFont m_fontMenuSelect;
+
+        private KeyboardControlPersistance m_keyboardControlPersistance;
 
         private enum MenuState
         {
@@ -18,12 +21,23 @@ namespace BBIY
             Quit
         }
 
+
         private MenuState m_currentSelection = MenuState.LevelSelect;
         private bool m_waitForKeyRelease;
+
+
+        public MainMenuView(KeyboardControlPersistance keyboardControlPersistance)
+        {
+            m_keyboardControlPersistance = keyboardControlPersistance;
+        }
 
         public override void initializeSession()
         {
             m_waitForKeyRelease = true;
+
+            // load current game controls
+            m_keyboardControlPersistance.loadControls();
+            while (m_keyboardControlPersistance.isLoading()) { }
         }
 
         public override void loadContent(ContentManager contentManager)

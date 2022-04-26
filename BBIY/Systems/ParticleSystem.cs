@@ -12,15 +12,24 @@ namespace Systems
         private Action<Entity> m_addEntity;
         private Action<Entity> m_removeEntity;
 
+        private readonly int GRID_SIZE;
+        private readonly int CELL_SIZE;
+        private readonly int OFFSET_X;
+        private readonly int OFFSET_Y;
+
         private BBIY.MyRandom m_random = new BBIY.MyRandom();
 
         private TimeSpan m_accumulated = TimeSpan.Zero;
         private TimeSpan m_rate = new TimeSpan(0, 0, 0, 0, 100);
 
-        public ParticleSystem(Action<Entity> addEntity, Action<Entity> removeEntity) : base(typeof(Components.Particle))
+        public ParticleSystem(Action<Entity> addEntity, Action<Entity> removeEntity, int screenWidth, int screenHeight, int gridSize) : base(typeof(Components.Particle))
         {
             m_addEntity = addEntity;
             m_removeEntity = removeEntity;
+            GRID_SIZE = gridSize;
+            CELL_SIZE = screenHeight / gridSize;
+            OFFSET_X = (screenWidth - gridSize * CELL_SIZE) / 2;
+            OFFSET_Y = (screenHeight - gridSize * CELL_SIZE) / 2;
         }
 
         public override void Update(GameTime gameTime)
@@ -104,8 +113,40 @@ namespace Systems
 
                 m_addEntity(p);
             }
+        }
 
-            //}
+        public void playerDeath(Texture2D square, Point position)
+        {
+            Color color = Color.Yellow;
+            Vector2 pos = new Vector2();
+            Vector2 size = new Vector2(2, 2);
+            float speed = 2.5f;
+            TimeSpan lifetime = new TimeSpan(0, 0, 0, 0, 150);
+
+
+            pos.X = (position.X * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_X;
+            pos.Y = (position.Y * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_Y;
+
+            //
+            // Generate particles at the specified rate
+            //m_accumulated += gameTime.ElapsedGameTime;
+            //while (m_accumulated > m_rate)
+            //{
+            //    m_accumulated -= m_rate;
+
+            for (int i = 0; i < 100; i++)
+            {
+                Entity p = Particle.create(
+                    square,
+                    Color.Yellow,
+                    pos,
+                    m_random.nextCircleVector(),
+                    size,
+                    (float)m_random.nextGaussian(speed, 1),
+                    lifetime); // 1 second lifetime
+
+                m_addEntity(p);
+            }
         }
     }
 }

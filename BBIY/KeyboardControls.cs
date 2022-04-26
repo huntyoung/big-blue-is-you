@@ -5,12 +5,23 @@ using System.Text;
 
 namespace BBIY
 {
-    class KeyboardControls
+    public class KeyboardControls
     {
-        public static Keys moveUp { get; set; } = Keys.W;
-        public static Keys moveDown { get; set; } = Keys.S;
-        public static Keys moveLeft { get; set; } = Keys.A;
-        public static Keys moveRight { get; set; } = Keys.D;
-        public static Keys reset { get; set; } = Keys.R;
+        public Keys moveUp { get; set; }
+        public Keys moveDown { get; set; }
+        public Keys moveLeft { get; set; }
+        public Keys moveRight { get; set; }
+        public Keys reset { get; set; }
+
+        public KeyboardControls() { }
+
+        public KeyboardControls(Keys up, Keys down, Keys left, Keys right, Keys reset)
+        {
+            this.moveUp = up;
+            this.moveDown = down;
+            this.moveLeft = left;
+            this.moveRight = right;
+            this.reset = reset;
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace Components
     public class Text : Component
     {
         public string word;
+        public List<string> partOfRules = new List<string>();
 
         public Text(string word)
         {
