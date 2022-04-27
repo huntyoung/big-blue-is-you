@@ -12,24 +12,25 @@ namespace Systems
         private Action<Entity> m_addEntity;
         private Action<Entity> m_removeEntity;
 
-        private readonly int GRID_SIZE;
+        private readonly int WINDOW_WIDTH;
+        private readonly int WINDOW_HEIGHT;
         private readonly int CELL_SIZE;
         private readonly int OFFSET_X;
         private readonly int OFFSET_Y;
 
         private BBIY.MyRandom m_random = new BBIY.MyRandom();
 
-        private TimeSpan m_accumulated = TimeSpan.Zero;
-        private TimeSpan m_rate = new TimeSpan(0, 0, 0, 0, 100);
-
-        public ParticleSystem(Action<Entity> addEntity, Action<Entity> removeEntity, int screenWidth, int screenHeight, int gridSize) : base(typeof(Components.Particle))
+        public ParticleSystem(Action<Entity> addEntity, Action<Entity> removeEntity, int screenWidth, int screenHeight, int gridWidth, int gridHeight) 
+            : base(typeof(Components.Particle))
         {
+            WINDOW_WIDTH = screenWidth;
+            WINDOW_HEIGHT = screenHeight;
+
             m_addEntity = addEntity;
             m_removeEntity = removeEntity;
-            GRID_SIZE = gridSize;
-            CELL_SIZE = screenHeight / gridSize;
-            OFFSET_X = (screenWidth - gridSize * CELL_SIZE) / 2;
-            OFFSET_Y = (screenHeight - gridSize * CELL_SIZE) / 2;
+            CELL_SIZE = screenHeight / gridHeight;
+            OFFSET_X = (screenWidth - gridWidth * CELL_SIZE) / 2;
+            OFFSET_Y = (screenHeight - gridHeight * CELL_SIZE) / 2;
         }
 
         public override void Update(GameTime gameTime)
@@ -50,14 +51,6 @@ namespace Systems
 
                 // Update its position
                 particleAttr.position += (particleAttr.direction * particleAttr.speed);
-
-                //
-                // Have it rotate proportional to its speed
-                //particleAttr.rotation += particleAttr.speed / 50.0f;
-                //
-                // Apply some gravity
-                //particleAttr.direction += this.Gravity;
-
             }
 
             // Remove any expired particles
@@ -85,67 +78,131 @@ namespace Systems
             }
         }
 
-        public void objectIsWin(Texture2D square)
+        public void objectEmphasizedParticles(Texture2D square, Point objectposition)
         {
-            Color color = Color.Yellow;
-            Vector2 position = new Vector2(500,500);
+            Color color = Color.LightYellow;
+            Vector2 pos = new Vector2();
             Vector2 size = new Vector2(1, 1);
-            float speed = 1;
-            TimeSpan lifetime = new TimeSpan(0, 0, 0, 0, 1000);
+            float speed = 0.5f;
+            TimeSpan lifetime = new TimeSpan(0, 0, 0, 0, 500);
 
-            //
-            // Generate particles at the specified rate
-            //m_accumulated += gameTime.ElapsedGameTime;
-            //while (m_accumulated > m_rate)
-            //{
-            //    m_accumulated -= m_rate;
+            pos.X = (objectposition.X * CELL_SIZE) + OFFSET_X + 4;
+            pos.Y = (objectposition.Y * CELL_SIZE) + CELL_SIZE + OFFSET_Y;
 
-            for (int i=0; i<10; i++)
+            float distanceToMove = (CELL_SIZE / 8) - 0.5f;
+            double doubleNum = 0.65;
+            for (int i=0; i<24; i++)
             {
+                float angle = (float)(doubleNum * 2.0 * Math.PI);
+                float circleX = (float)Math.Cos(angle);
+                float circleY = (float)Math.Sin(angle);
+
                 Entity p = Particle.create(
                     square,
-                    Color.Yellow,
-                    position,
-                    m_random.nextCircleVector(),
+                    color,
+                    pos,
+                    new Vector2(circleX, circleY),
                     size,
-                    (float)m_random.nextGaussian(speed, 1),
-                    lifetime); // 1 second lifetime
+                    (float)m_random.nextGaussian(speed, 0.1f),
+                    lifetime);
 
                 m_addEntity(p);
+
+                if (i % 8 == 0 && i != 0) doubleNum += 0.1;
+
+                if (i >= 0 && i < 8)
+                {
+                    pos.Y -= distanceToMove;
+                }
+                else if (i >= 8 && i < 16)
+                {
+                    pos.X += distanceToMove;
+                }
+                else if (i >= 16 && i < 24)
+                {
+                    pos.Y += distanceToMove;
+                }
             }
         }
 
-        public void playerDeath(Texture2D square, Point position)
+        public void destroyedEntityParticles(Texture2D square, Point position)
         {
             Color color = Color.Yellow;
             Vector2 pos = new Vector2();
             Vector2 size = new Vector2(2, 2);
-            float speed = 2.5f;
-            TimeSpan lifetime = new TimeSpan(0, 0, 0, 0, 150);
+            float speed = 2f;
+            TimeSpan lifetime = new TimeSpan(0, 0, 0, 0, 200);
 
 
             pos.X = (position.X * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_X;
             pos.Y = (position.Y * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_Y;
 
-            //
-            // Generate particles at the specified rate
-            //m_accumulated += gameTime.ElapsedGameTime;
-            //while (m_accumulated > m_rate)
-            //{
-            //    m_accumulated -= m_rate;
-
-            for (int i = 0; i < 100; i++)
+            while (speed > 0.5)
             {
-                Entity p = Particle.create(
-                    square,
-                    Color.Yellow,
-                    pos,
-                    m_random.nextCircleVector(),
-                    size,
-                    (float)m_random.nextGaussian(speed, 1),
-                    lifetime); // 1 second lifetime
+                for (int i = 0; i < 50; i++)
+                {
+                    Entity p = Particle.create(
+                        square,
+                        Color.Yellow,
+                        pos,
+                        m_random.nextCircleVector(),
+                        size,
+                        //(float)m_random.nextGaussian(speed, 1),
+                        speed,
+                        lifetime); // 1 second lifetime
 
-                m_addEntity(p);
+                    m_addEntity(p);
+                }
+                speed -= 0.2f;
+            }
+        }
+
+        private TimeSpan levelWonParticleRate = new TimeSpan(0, 0, 0, 0, 300);
+        private TimeSpan levelWonAccumulatedTime = TimeSpan.Zero;
+        private double doubleNum = 0;
+        private bool colorSwitch = false;
+
+        public void levelWonParticles(GameTime gameTime, Texture2D square, Point winnerPosition)
+        {
+            levelWonAccumulatedTime += gameTime.ElapsedGameTime;
+
+            Vector2 pos = new Vector2();
+            Vector2 size = new Vector2(4, 4);
+            float speed = 2;
+            TimeSpan lifetime = new TimeSpan(0, 0, 0, 2, 0);
+
+            float centerX = (winnerPosition.X * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_X;
+            float centerY = (winnerPosition.Y * CELL_SIZE) + (CELL_SIZE / 2) + OFFSET_Y;
+
+            while (levelWonAccumulatedTime > levelWonParticleRate)
+            {
+                levelWonAccumulatedTime -= levelWonParticleRate;
+
+                do
+                {
+                    float angle = (float)(doubleNum * 2.0 * Math.PI);
+                    float circleX = (float)Math.Cos(angle);
+                    float circleY = (float)Math.Sin(angle);
+
+                    pos.X = centerX + ((CELL_SIZE / 2) * circleX); //center + (radius * angle)
+                    pos.Y = centerY + ((CELL_SIZE / 2) * circleY); //center + (radius * angle)
+
+                    Entity p = Particle.create(
+                        square,
+                        colorSwitch ? Color.Yellow : Color.Orange,
+                        pos,
+                        new Vector2(circleX, circleY),
+                        size,
+                        speed,
+                        lifetime); // 1 second lifetime
+
+                    m_addEntity(p);
+
+                    if (doubleNum < 1) doubleNum += 0.025;
+                    else doubleNum = 0;
+
+                    colorSwitch = !colorSwitch;
+                } while (doubleNum > 0);
             }
         }
     }

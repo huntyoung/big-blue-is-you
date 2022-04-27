@@ -13,6 +13,42 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin Audio/background-music.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/background-music.wav
+
+#begin Audio/level-complete.mp3
+/importer:Mp3Importer
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/level-complete.mp3
+
+#begin Audio/object-sink.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/object-sink.wav
+
+#begin Audio/player-death.mp3
+/importer:Mp3Importer
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/player-death.mp3
+
+#begin Audio/player-move.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/player-move.wav
+
+#begin Audio/win-condition-changed.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/win-condition-changed.wav
+
 #begin Fonts/menu.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor

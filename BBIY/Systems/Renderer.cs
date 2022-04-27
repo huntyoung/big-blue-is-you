@@ -7,30 +7,24 @@ namespace Systems
 
     class Renderer : System
     {
-        private readonly int GRID_SIZE;
         private readonly int CELL_SIZE;
         private readonly int OFFSET_X;
         private readonly int OFFSET_Y;
         private readonly SpriteBatch m_spriteBatch;
         private readonly Texture2D m_texBackground;
 
-        public Renderer(SpriteBatch spriteBatch, Texture2D texBackGround, int width, int height, int gridSize) :
+        public Renderer(SpriteBatch spriteBatch, Texture2D texBackGround, int width, int height, int gridWidth, int gridHeight) :
             base(typeof(Components.Appearance), typeof(Components.Position))
         {
-            GRID_SIZE = gridSize;
-            CELL_SIZE = height / gridSize;
-            OFFSET_X = (width - gridSize * CELL_SIZE) / 2;
-            OFFSET_Y = (height - gridSize * CELL_SIZE) / 2;
+            CELL_SIZE = height / gridHeight;
+            OFFSET_X = (width - gridWidth * CELL_SIZE) / 2;
+            OFFSET_Y = (height - gridHeight * CELL_SIZE) / 2;
             m_spriteBatch = spriteBatch;
             m_texBackground = texBackGround;
         }
 
         public override void Update(GameTime gameTime)
         {
-            // Draw a background
-            //Rectangle background = new Rectangle(OFFSET_X, OFFSET_Y, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
-            //m_spriteBatch.Draw(m_texBackground, background, new Color(36, 36, 36));
-
             foreach (var entity in m_entities.Values)
             {
                 renderEntity(entity);

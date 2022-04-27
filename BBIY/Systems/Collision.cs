@@ -9,15 +9,15 @@ namespace Systems
     class Collision : System
     {
 
-        private Action<Entities.Entity> m_addEntity;
         private Action<Entities.Entity> m_removeEntity;
-        private Action<Point> m_playerDeathParticles;
+        private Action<Point> m_objectDestroyedParticles;
+        private Action<Entities.Entity> m_levelComplete;
 
-        public Collision(Action<Entities.Entity> addEntity, Action<Entities.Entity> removeEntity, Action<Point> playerDeathParticles) : base(typeof(Components.Position))
+        public Collision(Action<Entities.Entity> removeEntity, Action<Point> objectDestroyedParticles, Action<Entities.Entity> levelComplete) : base(typeof(Components.Position))
         {
-            m_addEntity = addEntity;
             m_removeEntity = removeEntity;
-            m_playerDeathParticles = playerDeathParticles;
+            m_objectDestroyedParticles = objectDestroyedParticles;
+            m_levelComplete = levelComplete;
         }
 
         public override void Update(GameTime gameTime)
@@ -111,8 +111,7 @@ namespace Systems
                 }
                 else if (entity.ContainsComponent<Components.IsWin>())
                 {
-                    collisionIsWin();
-                    youComponent.lastMove = Components.DirectionEnum.Stopped;
+                    collisionIsWin(youEntity);
                 }
             }
         }
@@ -162,22 +161,29 @@ namespace Systems
 
         private void collisionIsSink(Entities.Entity sinkEntity, Entities.Entity sunkEntity)
         {
+            var position = sunkEntity.GetComponent<Components.Position>();
+
             m_removeEntity(sinkEntity);
             m_removeEntity(sunkEntity);
+            m_objectDestroyedParticles(new Point(position.x, position.y));
+
+            BBIY.SoundEffects.objectSink();
         }
 
         private void collisionIsKill(Entities.Entity youEntity)
         {
             var position = youEntity.GetComponent<Components.Position>();
-            var youComponent = youEntity.GetComponent<Components.IsYou>();
 
             m_removeEntity(youEntity);
-            m_playerDeathParticles(new Point(position.x, position.y));
+            m_objectDestroyedParticles(new Point(position.x, position.y));
+
+            BBIY.SoundEffects.playerDeath();
         }
 
-        private void collisionIsWin()
+        private void collisionIsWin(Entities.Entity winnerEntity)
         {
-
+            m_levelComplete(winnerEntity);
+            BBIY.SoundEffects.levelComplete();
         }
 
         private void pushableEntitySink(List<Entities.Entity> entities, Entities.Entity pushableEntity)

@@ -8,7 +8,7 @@ namespace BBIY
     public class CreditsView : GameStateView
     {
         private SpriteFont m_font;
-        private const string MESSAGE = "*I* wrote this amazing game!";
+        private const string MESSAGE = "Created By: Hunter Young";
 
         public override void loadContent(ContentManager contentManager)
         {

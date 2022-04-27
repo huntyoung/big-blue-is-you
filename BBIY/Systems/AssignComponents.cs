@@ -21,15 +21,19 @@ namespace Systems
         private Action<Entity> m_addEntity;
         private Action<Entity> m_removeEntity;
         private Action<char, int, int> m_checkAndAdd;
+        private Action<Point> m_objectEmphasizedParticles;
 
         private List<Entity> m_removeMe;
 
-        public AssignComponents(Action<Entity> addEntity, Action<Entity> removeEntity, Action<char, int, int> checkAndAdd) 
+        public AssignComponents(
+            Action<Entity> addEntity, Action<Entity> removeEntity, Action<char, int, int> checkAndAdd, Action<Point> objectEmphasizedParticles
+            ) 
             : base(typeof(Components.ChangeableObject))
         {
             m_addEntity = addEntity;
             m_removeEntity = removeEntity;
             m_checkAndAdd = checkAndAdd;
+            m_objectEmphasizedParticles = objectEmphasizedParticles;
 
             m_removeMe = new List<Entity>();
 
@@ -75,6 +79,8 @@ namespace Systems
 
         public override void Update(GameTime gameTime)
         {
+            bool youOrWinIsChanged = false;
+
             List<string> newRules = SetRules.rulesList.Except(SetRules.previousRulesList).ToList();
             List<string> oldRules = SetRules.previousRulesList.Except(SetRules.rulesList).ToList();
 
@@ -114,17 +120,40 @@ namespace Systems
 
                     if (words[1] != "is") throw new Exception("Second word in rule must be a verb/linking word");
 
+                    bool removeRules = false;
                     foreach (var entity in objectList)
                     {
                         // if third word is discriptive word
                         Components.Component newComponent = getComponent(words[2]);
-                        if (newComponent != null) addComponentToEntity(entity, newComponent);
+                        if (newComponent != null)
+                        {
+                            addComponentToEntity(entity, newComponent);
+                            if (words[2] == "you" || words[2] == "win")
+                            {
+                                var pos = entity.GetComponent<Components.Position>();
+                                m_objectEmphasizedParticles(new Point(pos.x, pos.y));
+                                youOrWinIsChanged = true;
+                            }
+                        }
                         else
                         {
                             // if third word is noun
                             char entityChar = getEntityChar(words[2]);
                             if (entityChar == '0') Debug.WriteLine("Something went terribly wrong...");
-                            else replaceEntity(entity, entityChar);
+                            else
+                            {
+                                replaceEntity(entity, entityChar);
+                                removeRules = true;
+                            }
+                        }
+                    }
+
+                    if (removeRules)
+                    {
+                        // removes rules if entities have been replaced by other entities so they all have the same components
+                        foreach (string r in new List<string>(SetRules.rulesList))
+                        {
+                            if (r.StartsWith(words[2])) SetRules.previousRulesList.Remove(r);
                         }
                     }
 
@@ -136,14 +165,19 @@ namespace Systems
                 }
                 catch (Exception e) { Debug.WriteLine(e); }
             }
+
+            if (youOrWinIsChanged) BBIY.SoundEffects.winConditionChanged();
         }
 
         private void addComponentToEntity(Entity entity, Components.Component newComponent)
         {
-            m_removeEntity(entity);
-            entity.Add(newComponent);
-            //// add entity again to systems because it may be a part of new systems with changed components
-            m_addEntity(entity);
+            if (!entity.ContainsComponent(newComponent.GetType()))
+            {
+                m_removeEntity(entity);
+                entity.Add(newComponent);
+                //// add entity again to systems because it may be a part of new systems with changed components
+                m_addEntity(entity);
+            }
         }
 
         private void removeComponentFromEntity(Entity entity, Components.Component oldComponent)

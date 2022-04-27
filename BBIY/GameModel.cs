@@ -12,12 +12,15 @@ namespace BBIY
         private SpriteBatch m_spriteBatch;
 
         public static string[] m_currentLevel { get; set; }
-        public static int m_gridSize { get; set; }
 
-        private const int GRID_SIZE = 20;
+        private readonly int GRID_WIDTH;
+        private readonly int GRID_HEIGHT;
         private readonly int WINDOW_WIDTH;
         private readonly int WINDOW_HEIGHT;
         private readonly int CELL_SIZE;
+
+        private bool m_levelIsComplete;
+        private Entity m_winnerEntity;
 
         private Systems.Renderer m_sysRenderer;
         private Systems.KeyboardInput m_sysKeyboardInput;
@@ -56,38 +59,50 @@ namespace BBIY
         {
             this.WINDOW_WIDTH = width;
             this.WINDOW_HEIGHT = height;
-            this.CELL_SIZE = height / GRID_SIZE;
+
+            string[] gridDimensions = m_currentLevel[1].Split(' ');
+            GRID_WIDTH = int.Parse(gridDimensions[0]);
+            GRID_HEIGHT = int.Parse(gridDimensions[2]);
+
+            this.CELL_SIZE = height / GRID_HEIGHT;
         }
 
         public void Initialize(ContentManager content, SpriteBatch spriteBatch)
         {
             loadContent(content);
+            SoundEffects.LoadContent(content);
             m_spriteBatch = spriteBatch;
 
-            m_sysRenderer = new Systems.Renderer(m_spriteBatch, m_square, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
+            m_levelIsComplete = false;
+
+            m_sysRenderer = new Systems.Renderer(m_spriteBatch, m_square, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_WIDTH, GRID_HEIGHT);
             m_sysKeyboardInput = new Systems.KeyboardInput();
             m_sysAnimate = new Systems.Animate();
             m_sysCollision = new Systems.Collision((entity) => {
-                m_sysAssignComponents.addToEntityList(entity);
-                AddEntity(entity);
-            }, (entity) => {
                 m_sysAssignComponents.removeFromEntityList(entity);
                 RemoveEntity(entity);
-            }, playerDeathParticles);
+            }, objectDestroyedParticles, levelComplete);
             m_sysMovement = new Systems.Movement();
-            m_sysParticleSystem = new Systems.ParticleSystem(AddEntity, RemoveEntity, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_SIZE);
+            m_sysParticleSystem = new Systems.ParticleSystem(AddEntity, RemoveEntity, WINDOW_WIDTH, WINDOW_HEIGHT, GRID_WIDTH, GRID_HEIGHT);
             m_sysRules = new Systems.SetRules();
-            m_sysAssignComponents = new Systems.AssignComponents(AddEntity, RemoveEntity, checkAndAdd);
+            m_sysAssignComponents = new Systems.AssignComponents(AddEntity, RemoveEntity, checkAndAdd, objectEmphasizedParticles);
 
             initializeLevel();
+            SoundEffects.playBackgroundMusic();
         }
 
         public void Update(GameTime gameTime)
         {
-            m_sysRules.Update(gameTime);
-            m_sysAssignComponents.Update(gameTime);
+            if (m_levelIsComplete)
+            {
+                var winnerPosition = m_winnerEntity.GetComponent<Components.Position>();
+                m_sysParticleSystem.levelWonParticles(gameTime, m_square, new Point(winnerPosition.x, winnerPosition.y));
+            }
+
+            if (!m_levelIsComplete) m_sysRules.Update(gameTime);
+            if (!m_levelIsComplete) m_sysAssignComponents.Update(gameTime);
             m_sysKeyboardInput.Update(gameTime);
-            m_sysCollision.Update(gameTime);
+            if (!m_levelIsComplete) m_sysCollision.Update(gameTime);
             m_sysMovement.Update(gameTime);
             m_sysParticleSystem.Update(gameTime);
             m_sysAnimate.Update(gameTime);
@@ -127,9 +142,20 @@ namespace BBIY
             m_sysAssignComponents.Remove(entity.Id);
         }
 
-        private void playerDeathParticles(Point position)
+        private void objectDestroyedParticles(Point position)
         {
-            m_sysParticleSystem.playerDeath(m_square, position);
+            m_sysParticleSystem.destroyedEntityParticles(m_square, position);
+        }
+
+        private void objectEmphasizedParticles(Point position)
+        {
+            m_sysParticleSystem.objectEmphasizedParticles(m_square, position);
+        }
+
+        private void levelComplete(Entity winnerEntity)
+        {
+            m_winnerEntity = winnerEntity;
+            m_levelIsComplete = true;
         }
 
         private void loadContent(ContentManager content)
@@ -164,8 +190,8 @@ namespace BBIY
         private void initializeLevel()
         {
             // the game area starts on row 2 in the text
-            string[] gameLayer1 = m_currentLevel[2..(2 + (GRID_SIZE + 1))];
-            string[] gameLayer2 = m_currentLevel[(2 + GRID_SIZE)..m_currentLevel.Length];
+            string[] gameLayer1 = m_currentLevel[2..(2 + (GRID_HEIGHT + 1))];
+            string[] gameLayer2 = m_currentLevel[(2 + GRID_HEIGHT)..m_currentLevel.Length];
 
             for (int row = 0; row < gameLayer1.Length; row++)
             {

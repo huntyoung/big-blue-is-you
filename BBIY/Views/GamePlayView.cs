@@ -30,6 +30,7 @@ namespace BBIY
         {
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
             {
+                SoundEffects.stopBackgroundMusic();
                 return GameStateEnum.MainMenu;
             }
 

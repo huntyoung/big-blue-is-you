@@ -9,6 +9,8 @@ namespace Systems
     /// </summary>
     class Movement : System
     {
+        private bool m_objectMoved;
+
         public Movement()
             : base(typeof(Components.Position))
         {
@@ -16,10 +18,13 @@ namespace Systems
 
         public override void Update(GameTime gameTime)
         {
+            m_objectMoved = false;
             foreach (var entity in m_entities.Values)
             {
                 moveEntity(entity, gameTime);
             }
+
+            if (m_objectMoved) BBIY.SoundEffects.playerMove();
         }
 
         private void moveEntity(Entities.Entity entity, GameTime gameTime)
@@ -76,6 +81,8 @@ namespace Systems
 
             position.x += xIncrement;
             position.y += yIncrement;
+
+            m_objectMoved = true;
         }
     }
 }
